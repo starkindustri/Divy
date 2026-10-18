@@ -1,0 +1,7 @@
+"""Launcher used for development (`python run.py`) and as the PyInstaller entry point."""
+import sys
+
+from divyinvestorpro.app import main
+
+if __name__ == "__main__":
+    sys.exit(main())
