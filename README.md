@@ -57,6 +57,26 @@ is for the Mac architecture it was built on (Apple Silicon here).
 
 Bump the version in `divyinvestorpro/__init__.py`.
 
+## Build the Windows exe
+
+PyInstaller can't cross-compile, so the Windows build runs on Windows. The easy way is
+GitHub Actions: **Actions ▸ Build Windows exe ▸ Run workflow** produces
+`DivyInvestorPro.exe` as a downloadable artifact (and attaches it to a release if you give
+a tag). Pushing a `v*` tag runs it too.
+
+On a Windows PC, from the project folder in PowerShell:
+
+```powershell
+py -3.13 -m venv .venv
+.venv\Scripts\pip install -r requirements.txt pillow
+.\build_windows.ps1
+```
+
+Produces a single-file `dist\DivyInvestorPro.exe` (no install needed). It isn't code-signed,
+so Windows SmartScreen shows "Windows protected your PC" the first time: click
+**More info ▸ Run anyway**. On Windows the portfolio is saved in
+`%APPDATA%\DivyInvestorPro\portfolio.json`.
+
 ## Layout
 
 ```

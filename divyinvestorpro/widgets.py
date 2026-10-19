@@ -37,6 +37,12 @@ def num(v, dp=4):
     return f"{v:,.{dp}f}".rstrip("0").rstrip(".")
 
 
+def long_date(d, weekday=False):
+    """'Oct 19, 2026' or 'Monday, Oct 19, 2026' (no %-d: it doesn't work on Windows)."""
+    text = f"{d:%b} {d.day}, {d.year}"
+    return f"{d:%A}, {text}" if weekday else text
+
+
 def gain_color(v):
     if v is None or abs(v) < 1e-9:
         return None

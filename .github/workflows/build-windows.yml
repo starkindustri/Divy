@@ -1,0 +1,59 @@
+name: Build Windows exe
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Also attach the exe to this existing release tag (e.g. v1.0.0). Leave blank to skip."
+        required: false
+        default: ""
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pillow
+
+      - name: Build
+        shell: pwsh
+        run: ./build_windows.ps1
+
+      - name: Smoke test (launch, then close after 15s)
+        shell: pwsh
+        run: |
+          $p = Start-Process dist\DivyInvestorPro.exe -PassThru
+          Start-Sleep -Seconds 15
+          if ($p.HasExited) { throw "DivyInvestorPro.exe exited early with code $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
+          Write-Host "exe started and stayed running"
+
+      - name: Checksum
+        shell: pwsh
+        run: (Get-FileHash dist\DivyInvestorPro.exe -Algorithm SHA256).Hash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DivyInvestorPro-windows
+          path: dist/DivyInvestorPro.exe
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/') || inputs.release_tag != ''
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release_tag || github.ref_name }}
+        run: gh release upload $env:TAG dist/DivyInvestorPro.exe --clobber --repo ${{ github.repository }}

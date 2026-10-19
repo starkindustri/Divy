@@ -11,8 +11,8 @@ from PySide6.QtWidgets import (QCheckBox, QDateEdit, QFileDialog, QFrame, QGridL
 
 from . import market, theme
 from .dialogs import DividendDialog, HoldingDialog, TradeDialog
-from .widgets import (Column, FilterProxy, RecordsModel, StatCard, gain_color, make_table, money,
-                      num, pct, selected_row, signed_money)
+from .widgets import (Column, FilterProxy, RecordsModel, StatCard, gain_color, long_date,
+                      make_table, money, num, pct, selected_row, signed_money)
 from .workers import run_async
 
 FREQ = {0: "—", 1: "Annual", 2: "Semi-annual", 4: "Quarterly", 12: "Monthly", 52: "Weekly"}
@@ -425,7 +425,7 @@ class CalendarPage(Page):
         self.loaded = True
         self.req += 1
         req, day = self.req, self.day()
-        self.info.setText(f"Loading {day:%b %-d, %Y}…")
+        self.info.setText(f"Loading {long_date(day)}…")
         run_async(lambda: (req, day, market.fetch_dividend_calendar(day)),
                   self._loaded, lambda e: self._failed(req, day, e))
 
@@ -449,7 +449,7 @@ class CalendarPage(Page):
     def _failed(self, req, day, exc):
         if req == self.req:
             self.model.set_rows([])
-            self.info.setText(f"Couldn't load the calendar for {day:%b %-d, %Y}: {exc}")
+            self.info.setText(f"Couldn't load the calendar for {long_date(day)}: {exc}")
 
     def mark_owned(self):
         owned = set(self.state.portfolio.tickers())
@@ -468,9 +468,9 @@ class CalendarPage(Page):
         owned = sum(1 for r in self.model.rows if r["owned"])
         if total == 0:
             note = " (markets are closed on weekends)" if self.day().weekday() >= 5 else ""
-            self.info.setText(f"No ex-dividend dates on {self.day():%A, %b %-d, %Y}{note}.")
+            self.info.setText(f"No ex-dividend dates on {long_date(self.day(), weekday=True)}{note}.")
             return
-        text = f"{shown} of {total} companies go ex-dividend on {self.day():%A, %b %-d, %Y}"
+        text = f"{shown} of {total} companies go ex-dividend on {long_date(self.day(), weekday=True)}"
         if owned:
             text += f" · {owned} in your portfolio (highlighted)"
         self.info.setText(text + " · Source: Nasdaq · Double-click a row to add a buy")

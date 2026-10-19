@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import tempfile
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field, fields
@@ -263,7 +264,13 @@ class Portfolio:
 
 
 def data_dir() -> Path:
-    return Path.home() / "Library" / "Application Support" / APP_NAME
+    if sys.platform == "win32":
+        base = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming")
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        base = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
+    return base / APP_NAME
 
 
 def default_path() -> Path:

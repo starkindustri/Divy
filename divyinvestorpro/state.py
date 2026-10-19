@@ -46,7 +46,7 @@ class AppState(QObject):
         for sym in quotes:
             self.quote_errors.pop(sym, None)
         self.quote_errors.update(errors)
-        stamp = time.strftime("%-I:%M %p")
+        stamp = time.strftime("%I:%M %p").lstrip("0")
         msg = f"Prices updated {stamp}"
         if errors:
             msg += " — couldn't load " + ", ".join(sorted(errors))

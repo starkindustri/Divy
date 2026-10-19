@@ -1,4 +1,5 @@
-"""Write the app icon as a macOS .icns file. Usage: python tools/make_icon.py OUT.icns"""
+"""Write the app icon. Usage: python tools/make_icon.py OUT.icns (macOS) or OUT.png
+(Windows: PyInstaller converts the PNG to .ico when Pillow is installed)."""
 import os
 import subprocess
 import sys
@@ -17,6 +18,10 @@ from divyinvestorpro import icon  # noqa: E402
 def main(out):
     app = QGuiApplication(sys.argv[:1])  # noqa: F841 (needed for fonts)
     master = icon.draw(1024)
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
+    if out.endswith(".png"):
+        master.scaled(256, 256, Qt.KeepAspectRatio, Qt.SmoothTransformation).save(out)
+        return
     with tempfile.TemporaryDirectory() as tmp:
         iconset = Path(tmp) / "app.iconset"
         iconset.mkdir()
@@ -26,7 +31,6 @@ def main(out):
                 name = f"icon_{size}x{size}{'@2x' if scale == 2 else ''}.png"
                 master.scaled(px, px, Qt.KeepAspectRatio, Qt.SmoothTransformation).save(
                     str(iconset / name))
-        Path(out).parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(["iconutil", "-c", "icns", str(iconset), "-o", out], check=True)
 
 

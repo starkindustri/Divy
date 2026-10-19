@@ -1,12 +1,11 @@
 """Main window and application entry point."""
 import json
-import subprocess
 import sys
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QTimer
-from PySide6.QtGui import QAction, QIcon, QKeySequence, QPixmap
+from PySide6.QtCore import QTimer, QUrl
+from PySide6.QtGui import QAction, QDesktopServices, QIcon, QKeySequence, QPixmap
 from PySide6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel, QListWidget,
                                QMainWindow, QMessageBox, QStackedWidget, QVBoxLayout, QWidget)
 
@@ -136,7 +135,7 @@ class MainWindow(QMainWindow):
 
     def show_data_folder(self):
         data_dir().mkdir(parents=True, exist_ok=True)
-        subprocess.run(["open", str(data_dir())], check=False)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(data_dir())))
 
     def about(self):
         QMessageBox.about(
