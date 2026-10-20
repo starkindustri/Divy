@@ -10,8 +10,9 @@ from PySide6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel, Q
                                QMainWindow, QMessageBox, QStackedWidget, QVBoxLayout, QWidget)
 
 from . import APP_NAME, __version__, icon, theme
-from .dialogs import TradeDialog
-from .pages import REFRESH_MS, CalendarPage, IncomePage, PortfolioPage
+from .calendar_page import CalendarPage
+from .dialogs import SettingsDialog, TradeDialog
+from .pages import REFRESH_MS, IncomePage, PortfolioPage
 from .portfolio import Portfolio, data_dir, default_path
 from .state import AppState
 
@@ -53,7 +54,7 @@ class MainWindow(QMainWindow):
         self.pages = QStackedWidget()
         self.pages.addWidget(self.portfolio_page)
         self.pages.addWidget(IncomePage(state))
-        self.pages.addWidget(CalendarPage(state, self.buy))
+        self.pages.addWidget(CalendarPage(state, self.buy, self.open_settings))
         self.nav.currentRowChanged.connect(self.pages.setCurrentIndex)
         self.nav.setCurrentRow(0)
 
@@ -77,11 +78,14 @@ class MainWindow(QMainWindow):
             ("Import Portfolio…", self.import_portfolio, None),
             ("Export Portfolio…", self.export_portfolio, None),
             ("Show Data Folder", self.show_data_folder, None),
+            ("Settings…", self.open_settings, QKeySequence.Preferences),
         ]:
             act = QAction(text, self)
             act.triggered.connect(fn)
             if key:
                 act.setShortcut(key)
+            if fn == self.open_settings:
+                act.setMenuRole(QAction.PreferencesRole)  # app menu on macOS
             file_menu.addAction(act)
         view = self.menuBar().addMenu("View")
         for i, name in enumerate(["Portfolio", "Income", "Dividend Calendar"]):
@@ -97,6 +101,9 @@ class MainWindow(QMainWindow):
         about.setMenuRole(QAction.AboutRole)
         about.triggered.connect(self.about)
         self.menuBar().addMenu("Help").addAction(about)
+
+    def open_settings(self):
+        SettingsDialog(self.state, self).exec()
 
     def buy(self, ticker):
         TradeDialog(self.state, "buy", ticker, self).exec()
@@ -142,7 +149,8 @@ class MainWindow(QMainWindow):
             self, APP_NAME,
             f"<b>{APP_NAME}</b> {__version__}<br><br>"
             "Track dividend holdings, income and DRIP, and browse the US dividend calendar.<br><br>"
-            "Prices and dividend history: Yahoo Finance. Dividend calendar: Nasdaq.<br>"
+            "Prices and dividend history: Yahoo Finance. Dividend calendar: Massive "
+            "(all US exchanges, with your API key) or Nasdaq.<br>"
             "Data is delayed and for information only — not investment advice.")
 
 

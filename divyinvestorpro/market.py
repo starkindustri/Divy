@@ -141,6 +141,44 @@ def fetch_dividend_calendar(day: date) -> list:
     return ((payload.get("data") or {}).get("calendar") or {}).get("rows") or []
 
 
+MASSIVE_DIVIDENDS = "https://api.massive.com/stocks/v1/dividends"
+MASSIVE_MAX_PAGES = 4  # the free plan allows 5 requests a minute
+
+
+class ApiKeyError(Exception):
+    pass
+
+
+def fetch_massive_dividends(day: date, api_key: str, limit: int = 5000,
+                            max_pages: int = MASSIVE_MAX_PAGES) -> list:
+    """All US dividends with an ex-dividend date of `day`, from Massive (formerly Polygon.io)."""
+    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    url = MASSIVE_DIVIDENDS
+    params = {"ex_dividend_date": day.isoformat(), "limit": limit, "sort": "ticker.asc"}
+    results = []
+    for _ in range(max_pages):
+        resp = requests.get(url, params=params, headers=headers, impersonate="chrome", timeout=TIMEOUT)
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {}
+        error = str(body.get("error") or body.get("message") or "")
+        # Massive answers a bad key with 401, 403, or (on this endpoint) 404 "Unknown API Key"
+        if resp.status_code in (401, 403) or "api key" in error.lower():
+            raise ApiKeyError("Massive didn't accept the API key. Check it in Settings.")
+        if resp.status_code == 429:
+            raise RuntimeError("Massive's free plan allows 5 requests a minute. "
+                               "Wait a minute and press Refresh.")
+        resp.raise_for_status()
+        if body.get("status") == "ERROR":
+            raise RuntimeError(error or "Massive returned an error")
+        results += body.get("results") or []
+        url, params = body.get("next_url"), None
+        if not url or len(results) >= limit:
+            break
+    return results
+
+
 def us_date_to_iso(value) -> Optional[str]:
     """Nasdaq's M/D/YYYY -> YYYY-MM-DD (None if blank or malformed)."""
     try:

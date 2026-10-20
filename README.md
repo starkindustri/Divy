@@ -14,8 +14,10 @@ It follows the system light/dark appearance.
   so shares and cost basis grow automatically.
 - **Income**: dividends received by month (last 12 months), year-to-date, forward estimate,
   and a log of every payment.
-- **Dividend Calendar**: every US company going ex-dividend on a chosen day, with filter,
-  "only my holdings", CSV export, and double-click to add a buy.
+- **Dividend Calendar**: every US stock and ETF going ex-dividend on a chosen day, with a
+  market filter (All US, NYSE, Nasdaq, NYSE American, ETFs, Dow 30, S&P 500), text filter,
+  "only my holdings", CSV export, and double-click to add a buy. Covering NYSE needs a free
+  Massive API key (Settings); without one the calendar shows Nasdaq-listed stocks only.
 - **Import / export**: File ▸ Import Portfolio… reads DivyInvestorPro files and
   FreedomTracker portfolio JSON files (holdings, buys, sells, dividends, DRIP).
 
@@ -26,13 +28,23 @@ It follows the system light/dark appearance.
 ## Data sources
 
 - Prices and dividend history: Yahoo Finance chart API (via `curl_cffi`).
-- Dividend calendar: Nasdaq's public calendar API.
+- Dividend calendar: [Massive](https://massive.com) (formerly Polygon.io) dividends API for all
+  US exchanges, using your own free API key. Sign up, pick the free Basic plan, copy the key
+  from the dashboard's API Keys page, and paste it into **Settings** in the app (or set the
+  `MASSIVE_API_KEY` environment variable). The free plan allows 5 requests a minute; the app
+  makes one per day you view and caches it for 10 minutes. Without a key the calendar falls
+  back to Nasdaq's public calendar, which only lists Nasdaq-listed stocks.
+- Exchange of each ticker: Nasdaq's public stock and ETF screener. S&P 500 members:
+  Wikipedia. Both are cached for a week. The Dow 30 list is built in
+  (`divyinvestorpro/reference.py`, as of June 29, 2026) and needs updating when the index changes.
 
-Both are free, unofficial and keyless; they can change or rate-limit without notice.
+Yahoo, Nasdaq and Wikipedia are unofficial, keyless sources; they can change or rate-limit
+without notice.
 Quotes are delayed. Not investment advice.
 
 Your portfolio is saved to `~/Library/Application Support/DivyInvestorPro/portfolio.json`
-after every change (File ▸ Show Data Folder). Importing over an existing portfolio saves a
+after every change (File ▸ Show Data Folder). Settings, including your API key, are in
+`settings.json` in the same folder, never in the project. Importing over an existing portfolio saves a
 timestamped backup there first.
 
 ## Develop
@@ -82,16 +94,20 @@ so Windows SmartScreen shows "Windows protected your PC" the first time: click
 ```
 divyinvestorpro/
   portfolio.py   data model, average-cost math, JSON storage (no UI)
-  market.py      Yahoo quotes/dividends, Nasdaq calendar (no UI)
+  market.py      Yahoo quotes/dividends, Massive and Nasdaq calendars (no UI)
+  reference.py   ticker -> exchange, S&P 500 / Dow 30 membership (cached)
+  calendar_data.py  builds and filters Dividend Calendar rows
+  settings.py    settings.json (Massive API key)
   state.py       shared app state: portfolio + latest quotes
   app.py         main window, menus, entry point
-  pages.py       Portfolio, Income, Dividend Calendar pages
-  dialogs.py     Buy/Sell, Record dividend, Holding details
+  pages.py       Portfolio and Income pages
+  calendar_page.py  Dividend Calendar page
+  dialogs.py     Buy/Sell, Record dividend, Holding details, Settings
   widgets.py     table model, stat cards, formatting
   theme.py       light/dark colors and stylesheet
   icon.py        app icon drawn in code
   workers.py     background network calls
-tests/           unit tests for the portfolio math and quote estimates
+tests/           unit tests for portfolio math, quote estimates and calendar rows
 tools/           icon export used by the build
 dividend_calendar.py  the earlier standalone Tkinter calendar (superseded)
 ```

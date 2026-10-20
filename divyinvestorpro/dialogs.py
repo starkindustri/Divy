@@ -1,11 +1,13 @@
-"""Dialogs for buying, selling, logging dividends and viewing one holding."""
-from PySide6.QtCore import QDate, QRegularExpression, Qt
+"""Dialogs: buy/sell, log a dividend, holding details, and settings."""
+from datetime import date
+
+from PySide6.QtCore import QDate, QRegularExpression
 from PySide6.QtGui import QRegularExpressionValidator
 from PySide6.QtWidgets import (QCheckBox, QDateEdit, QDialog, QDoubleSpinBox, QFormLayout,
                                QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton,
                                QVBoxLayout)
 
-from . import market
+from . import market, settings, theme
 from .portfolio import Dividend
 from .widgets import Column, RecordsModel, StatCard, make_table, money, num, selected_row
 from .workers import run_async
@@ -347,3 +349,82 @@ class HoldingDialog(QDialog):
         except (RuntimeError, TypeError):
             pass
         super().done(result)
+
+
+class SettingsDialog(QDialog):
+    """Where the user pastes their Massive API key for the all-US dividend calendar."""
+
+    def __init__(self, state, parent=None):
+        super().__init__(parent)
+        self.state = state
+        self.setWindowTitle("Settings")
+        self.setMinimumWidth(520)
+
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(22, 20, 22, 18)
+        lay.setSpacing(12)
+        title = QLabel("Dividend calendar data")
+        title.setObjectName("Section")
+        lay.addWidget(title)
+        about = QLabel(
+            "A free <b>Massive</b> API key (formerly Polygon.io) adds NYSE, NYSE American and "
+            "ETFs to the Dividend Calendar. Without one, the calendar shows Nasdaq-listed "
+            "stocks only.<br><br>Get a key at <a href='https://massive.com' style='color:{link}'>massive.com</a>: "
+            "sign up, choose the free Basic plan, then copy the key from the dashboard's "
+            "API Keys page.".format(link=theme.colors()["accent"]))
+        about.setWordWrap(True)
+        about.setOpenExternalLinks(True)
+        lay.addWidget(about)
+
+        row = QHBoxLayout()
+        self.key = QLineEdit(settings.load().get("massive_api_key", ""))
+        self.key.setPlaceholderText("Paste your Massive API key")
+        self.key.setEchoMode(QLineEdit.Password)
+        show = QCheckBox("Show")
+        show.toggled.connect(lambda on: self.key.setEchoMode(
+            QLineEdit.Normal if on else QLineEdit.Password))
+        test = QPushButton("Test key")
+        test.clicked.connect(self._test)
+        row.addWidget(self.key, 1)
+        row.addWidget(show)
+        row.addWidget(test)
+        lay.addLayout(row)
+
+        self.status = QLabel(f"Saved only on this computer, in {settings.path()}")
+        self.status.setObjectName("Muted")
+        self.status.setWordWrap(True)
+        lay.addWidget(self.status)
+        lay.addLayout(_buttons(self, "Save"))
+
+    def _test(self):
+        key = self.key.text().strip()
+        if not key:
+            self.status.setText("Paste a key first.")
+            return
+        self.status.setText("Testing…")
+
+        def done(rows):
+            try:
+                self.status.setText("✓ Key works. Massive returned dividend data.")
+            except RuntimeError:
+                pass  # dialog closed
+
+        def failed(exc):
+            try:
+                self.status.setText(f"✗ {exc}")
+            except RuntimeError:
+                pass
+
+        run_async(lambda: market.fetch_massive_dividends(date.today(), key, limit=1, max_pages=1),
+                  done, failed)
+
+    def accept(self):
+        values = settings.load()
+        values["massive_api_key"] = self.key.text().strip()
+        try:
+            settings.save(values)
+        except OSError as exc:
+            QMessageBox.warning(self, "Settings", f"Couldn't save settings:\n{exc}")
+            return
+        self.state.settings_changed.emit()
+        super().accept()

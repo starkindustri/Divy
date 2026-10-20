@@ -11,6 +11,7 @@ from .workers import run_async
 class AppState(QObject):
     portfolio_changed = Signal()
     quotes_changed = Signal()
+    settings_changed = Signal()
     message = Signal(str)
 
     def __init__(self, path, portfolio: Portfolio):
