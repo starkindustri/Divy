@@ -19,6 +19,15 @@ def money(v, dp=2):
     return f"{sign}${abs(v):,.{dp}f}"
 
 
+def money_in(v, currency="USD", dp=4):
+    """Amount with its currency: '$0.5300', or '0.0225 CAD' for non-US dollars."""
+    if v is None:
+        return "—"
+    if currency in (None, "", "USD"):
+        return money(v, dp)
+    return f"{v:,.{dp}f} {currency}"
+
+
 def signed_money(v):
     if v is None:
         return "—"
@@ -76,8 +85,9 @@ class Column:
     """One table column: how to display, align, sort, and color a row value."""
 
     def __init__(self, key, title, fmt=str, align="left", color=None, bold=None, width=None,
-                 tip=None):
+                 tip=None, display=None):
         self.key, self.title, self.fmt, self.tip = key, title, fmt, tip
+        self.display = display  # optional display(row) -> text, when the value alone isn't enough
         self.align = {"left": Qt.AlignLeft, "right": Qt.AlignRight,
                       "center": Qt.AlignHCenter}[align] | Qt.AlignVCenter
         self.color, self.bold, self.width = color, bold, width
@@ -119,6 +129,8 @@ class RecordsModel(QAbstractTableModel):
         value = row.get(col.key)
         if role == Qt.ToolTipRole and col.tip:
             return col.tip(row) or None
+        if role == Qt.DisplayRole and col.display:
+            return col.display(row)
         if role == Qt.DisplayRole or (role == Qt.ToolTipRole and col.width == "stretch"):
             return "—" if value is None and col.numeric else col.fmt(value) if value is not None else ""
         if role == SORT_ROLE:

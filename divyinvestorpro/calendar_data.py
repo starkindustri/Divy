@@ -7,6 +7,7 @@ from typing import Optional
 
 from . import market, reference
 
+OTHER = "OTC / other"  # not on a major exchange list: mostly OTC tickers and foreign ADRs
 FREQ_LABELS = {1: "Annual", 2: "Semi-annual", 4: "Quarterly", 12: "Monthly", 52: "Weekly"}
 
 # Market filter choices: label -> predicate over a row
@@ -16,6 +17,7 @@ MARKETS = {
     "Nasdaq": lambda r: r["exchange"] == "Nasdaq",
     "NYSE American": lambda r: r["exchange"] == "NYSE American",
     "ETFs": lambda r: r["exchange"] == "ETF",
+    "OTC / other": lambda r: r["exchange"] == OTHER,
     "Dow 30": lambda r: "Dow 30" in r["indexes"],
     "S&P 500": lambda r: "S&P 500" in r["indexes"],
 }
@@ -28,7 +30,7 @@ def _float(v) -> Optional[float]:
         return None
 
 
-def _tags(ref: Optional[reference.Reference], symbol: str, fallback_exchange: str = "Other"):
+def _tags(ref: Optional[reference.Reference], symbol: str, fallback_exchange: str = OTHER):
     if ref is None:
         return fallback_exchange, [], ""
     return ref.exchange(symbol) or fallback_exchange, ref.indexes(symbol), ref.name(symbol)

@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDateEdit, QFileDialog, QFr
 from . import calendar_data, settings, theme
 from .pages import REFRESH_MS, Page
 from .portfolio import data_dir
-from .widgets import Column, FilterProxy, RecordsModel, long_date, make_table, money, selected_row
+from .widgets import Column, FilterProxy, RecordsModel, long_date, make_table, money_in, selected_row
 from .workers import run_async
 
 CACHE_SECONDS = 10 * 60  # reuse a day's results for 10 min (Massive free plan: 5 requests/min)
@@ -31,13 +31,15 @@ COLUMNS = [
     Column("index_label", "Index", width=135, color=_index_color),
     Column("ex_date", "Ex-date", width=102),
     Column("pay_date", "Pay date", width=102),
-    Column("dividend", "Dividend", lambda v: money(v, 4), "right", width=86),
-    Column("annual", "Annual", lambda v: money(v, 4), "right", width=86),
+    Column("dividend", "Dividend", align="right", width=96,
+           display=lambda r: money_in(r["dividend"], r["currency"])),
+    Column("annual", "Annual", align="right", width=96,
+           display=lambda r: money_in(r["annual"], r["currency"])),
     Column("freq", "Frequency", width=92),
     Column("declared", "Declared", width=102),
 ]
-# CSV export also includes the record date
-EXPORT_COLUMNS = COLUMNS[:6] + [Column("record_date", "Record date")] + COLUMNS[6:]
+# CSV export also includes the record date and currency
+EXPORT_COLUMNS = COLUMNS + [Column("record_date", "Record date"), Column("currency", "Currency")]
 
 
 class CalendarPage(Page):

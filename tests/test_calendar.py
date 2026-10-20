@@ -57,7 +57,7 @@ class MassiveRowTests(unittest.TestCase):
         self.assertEqual(brk["freq"], "Special")
 
     def test_unknown_and_preferred(self):
-        self.assertEqual(self.rows["NEWCO"]["exchange"], "Other")
+        self.assertEqual(self.rows["NEWCO"]["exchange"], "OTC / other")
         self.assertEqual(self.rows["ABRpD"]["exchange"], "NYSE")
         self.assertEqual(self.rows["SCHD"]["exchange"], "ETF")
 
@@ -72,10 +72,17 @@ class MassiveRowTests(unittest.TestCase):
         self.assertEqual(pick("Dow 30"), ["KO"])
         self.assertEqual(pick("S&P 500"), ["BRK.B", "KO"])
         self.assertEqual(len(pick("All US markets")), 5)
+        self.assertEqual(pick("OTC / other"), ["NEWCO"])
+
+    def test_currency_display(self):
+        from divyinvestorpro.widgets import money_in
+        self.assertEqual(money_in(0.53, "USD"), "$0.5300")
+        self.assertEqual(money_in(0.0225, "CAD"), "0.0225 CAD")
+        self.assertEqual(money_in(None, "CAD"), "—")
 
     def test_without_reference_data(self):
         rows = calendar_data.from_massive(MASSIVE[:1], None)
-        self.assertEqual((rows[0]["exchange"], rows[0]["indexes"]), ("Other", []))
+        self.assertEqual((rows[0]["exchange"], rows[0]["indexes"]), ("OTC / other", []))
 
 
 class NasdaqRowTests(unittest.TestCase):
